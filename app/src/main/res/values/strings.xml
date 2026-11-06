@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Foyer</string>
+    <string name="remote_hint">Phone remote</string>
+    <string name="a11y_label">Foyer remote control</string>
+    <string name="a11y_description">Lets the Foyer phone remote send Back, Home and tap commands while other apps are open. Nothing is read from the screen.</string>
+</resources>

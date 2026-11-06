@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0a0e13">
+<title>Foyer remote</title>
+<style>
+  :root {
+    --bg: #0a0e13;
+    --panel: #151d27;
+    --tile: #1b2531;
+    --accent: #7fd1ff;
+    --text: #eaf2fa;
+    --dim: #8fa3b8;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overscroll-behavior: none;
+  }
+  body { display: flex; flex-direction: column; padding: 18px; gap: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.02em; font-weight: 650; }
+  #status { font-size: 12px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #5a3b3b; }
+  .dot.on { background: #4ade80; box-shadow: 0 0 8px #4ade8088; }
+
+  #pair { display: none; flex-direction: column; gap: 12px; background: var(--panel);
+          padding: 18px; border-radius: 16px; }
+  #pair.show { display: flex; }
+  #pair p { margin: 0; color: var(--dim); font-size: 14px; line-height: 1.5; }
+  input {
+    width: 100%; padding: 16px; font-size: 26px; letter-spacing: 0.35em; text-align: center;
+    background: #0e1620; color: var(--text); border: 1px solid #24303f; border-radius: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  button { font-family: inherit; border: none; }
+  .primary {
+    padding: 15px; font-size: 16px; font-weight: 600; border-radius: 12px;
+    background: var(--accent); color: #06111b;
+  }
+  .primary:active { transform: scale(0.98); }
+
+  #main { display: none; flex-direction: column; gap: 16px; flex: 1; min-height: 0; }
+  #main.show { display: flex; }
+
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 320px;
+         margin: 0 auto; width: 100%; }
+  .key {
+    aspect-ratio: 1; border-radius: 16px; background: var(--tile); color: var(--text);
+    font-size: 22px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid #24303f; user-select: none;
+  }
+  .key:active { background: #2c3e54; border-color: var(--accent); }
+  .key.ok { background: #22303f; font-size: 15px; font-weight: 700; letter-spacing: 0.06em; }
+  .key.blank { background: transparent; border: none; }
+
+  .row { display: flex; gap: 10px; }
+  .row button {
+    flex: 1; padding: 13px; border-radius: 12px; background: var(--tile); color: var(--text);
+    font-size: 14px; border: 1px solid #24303f;
+  }
+  .row button:active { background: #2c3e54; }
+
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--dim);
+       margin: 4px 0 0; font-weight: 600; }
+  #apps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; overflow-y: auto;
+          padding-bottom: 8px; }
+  .app {
+    padding: 13px 12px; border-radius: 12px; background: var(--tile); color: var(--text);
+    font-size: 14px; text-align: left; border: 1px solid #1f2a37; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .app.sel { border-color: var(--accent); color: var(--accent); }
+  .app:active { background: #2c3e54; }
+  #err { color: #ff8f8f; font-size: 13px; min-height: 16px; }
+
+  .trow { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+          background: var(--tile); margin-bottom: 6px; border: 1px solid #1f2a37; }
+  .trow.hidden { opacity: 0.45; }
+  .trow .nm { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trow button { width: 40px; height: 34px; border-radius: 9px; background: #22303f; color: var(--text);
+                 font-size: 14px; border: 1px solid #2b3a4d; }
+  .trow button.eye { width: 56px; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Foyer</h1>
+  <div id="status"><span class="dot" id="dot"></span><span id="statusText">not paired</span></div>
+</header>
+
+<section id="pair">
+  <p>Scan the QR code on the projector, or type the 6-digit PIN shown on its screen.</p>
+  <input id="pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+  <button class="primary" id="pairBtn">Pair this phone</button>
+  <div id="err"></div>
+</section>
+
+<section id="main">
+  <div class="row">
+    <button id="homeBtn">Home</button>
+    <button id="tilesBtn">Tiles</button>
+    <button id="refreshBtn">Refresh</button>
+  </div>
+  <div class="pad">
+    <div class="key blank"></div>
+    <div class="key" data-k="up">▲</div>
+    <div class="key blank"></div>
+    <div class="key" data-k="left">◀</div>
+    <div class="key ok" data-k="ok">OK</div>
+    <div class="key" data-k="right">▶</div>
+    <div class="key blank"></div>
+    <div class="key" data-k="down">▼</div>
+    <div class="key blank"></div>
+  </div>
+  <h2>Open on the TV</h2>
+  <div id="apps"></div>
+
+  <div id="tileEditor" style="display:none">
+    <h2>Home screen tiles</h2>
+    <p style="color:var(--dim);font-size:12px;margin:6px 0 10px">
+      Tap a row to hide or show it. Arrows change the order.
+    </p>
+    <div id="tileRows"></div>
+  </div>
+
+  <div id="bgPanel">
+    <h2>Background photo</h2>
+    <p style="color:var(--dim);font-size:12px;margin:6px 0 10px">
+      Pick a photo from this phone. It is downscaled and stored on the projector.
+    </p>
+    <div class="row">
+      <button id="bgPick">Choose photo</button>
+      <button id="bgClear">Reset</button>
+    </div>
+    <input type="file" id="bgFile" accept="image/*" style="display:none">
+  </div>
+</section>
+
+<script>
+(function () {
+  var TOKEN_KEY = "foyer_token";
+  var token = localStorage.getItem(TOKEN_KEY) || "";
+  var state = null;
+  var timer = null;
+
+  function $(id) { return document.getElementById(id); }
+
+  function api(path, body) {
+    var opt = { method: body ? "POST" : "GET", cache: "no-store" };
+    if (body) {
+      opt.headers = { "Content-Type": "application/json" };
+      opt.body = JSON.stringify(body);
+    }
+    return fetch(path, opt).then(function (r) { return r.json(); });
+  }
+
+  function setStatus(ok, text) {
+    $("dot").className = "dot" + (ok ? " on" : "");
+    $("statusText").textContent = text;
+  }
+
+  function showPair(msg) {
+    $("pair").classList.add("show");
+    $("main").classList.remove("show");
+    setStatus(false, "not paired");
+    $("err").textContent = msg || "";
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  function showMain() {
+    $("pair").classList.remove("show");
+    $("main").classList.add("show");
+    setStatus(true, "connected");
+    if (!timer) timer = setInterval(refresh, 4000);
+  }
+
+  function render() {
+    if (!state) return;
+    var box = $("apps");
+    box.innerHTML = "";
+    (state.tiles || []).forEach(function (t, i) {
+      var b = document.createElement("button");
+      b.className = "app" + (i === state.sel ? " sel" : "");
+      b.textContent = t.label;
+      b.onclick = function () {
+        api("/api/launch", { token: token, id: t.id }).then(refresh).catch(function () {});
+      };
+      box.appendChild(b);
+    });
+    renderTiles();
+  }
+
+  function tileList() {
+    return (state && state.all ? state.all : []).map(function (a) {
+      return { pkg: a.pkg, label: a.label, hidden: !!a.hidden };
+    });
+  }
+
+  function saveTiles(list) {
+    var order = list.map(function (x) { return x.pkg; }).join(",");
+    var hidden = list.filter(function (x) { return x.hidden; })
+                     .map(function (x) { return x.pkg; }).join(",");
+    api("/api/tiles", { token: token, order: order, hidden: hidden })
+      .then(refresh).catch(function () {});
+  }
+
+  function move(list, from, to) {
+    var l = list.slice();
+    var item = l.splice(from, 1)[0];
+    l.splice(to, 0, item);
+    return l;
+  }
+
+  function renderTiles() {
+    var box = $("tileRows");
+    if (!box || $("tileEditor").style.display === "none") return;
+    var list = tileList();
+    box.innerHTML = "";
+    list.forEach(function (t, i) {
+      var row = document.createElement("div");
+      row.className = "trow" + (t.hidden ? " hidden" : "");
+
+      var nm = document.createElement("div");
+      nm.className = "nm";
+      nm.textContent = t.label;
+      row.appendChild(nm);
+
+      var up = document.createElement("button");
+      up.textContent = "\u25B2";
+      up.disabled = i === 0;
+      up.onclick = function () { if (i > 0) saveTiles(move(list, i, i - 1)); };
+      row.appendChild(up);
+
+      var down = document.createElement("button");
+      down.textContent = "\u25BC";
+      down.disabled = i === list.length - 1;
+      down.onclick = function () { if (i < list.length - 1) saveTiles(move(list, i, i + 1)); };
+      row.appendChild(down);
+
+      var eye = document.createElement("button");
+      eye.className = "eye";
+      eye.textContent = t.hidden ? "Show" : "Hide";
+      eye.onclick = function () {
+        var l = list.slice();
+        l[i] = { pkg: t.pkg, label: t.label, hidden: !t.hidden };
+        saveTiles(l);
+      };
+      row.appendChild(eye);
+
+      box.appendChild(row);
+    });
+  }
+
+  function send(cmd) {
+    if (!token) return;
+    // touchstart and click can both fire for one tap; two identical commands move the TV twice
+    // (and the TV now really injects two key presses), so collapse the duplicate.
+    var now = Date.now();
+    if (send.last === cmd && now - send.at < 300) return;
+    send.last = cmd;
+    send.at = now;
+    api("/api/cmd", { token: token, cmd: cmd }).then(function (r) {
+      if (r && r.ok) { state.sel = r.sel; render(); }
+    }).catch(function () {});
+  }
+
+  function refresh() {
+    return api("/api/state").then(function (s) {
+      state = s;
+      render();
+      if (!token) { showPair(""); return; }
+      return api("/api/cmd", { token: token, cmd: "noop" }).then(function (r) {
+        if (r && r.ok) { showMain(); }
+        else { localStorage.removeItem(TOKEN_KEY); token = ""; showPair("Session expired - pair again."); }
+      }).catch(function () { showMain(); });
+    }).catch(function () {
+      setStatus(false, "offline");
+    });
+  }
+
+  $("pairBtn").onclick = function () {
+    var pin = ($("pin").value || "").replace(/\D/g, "");
+    if (pin.length !== 6) { $("err").textContent = "Enter all 6 digits."; return; }
+    $("err").textContent = "";
+    api("/api/pair", { pin: pin }).then(function (r) {
+      if (r && r.ok && r.token) {
+        token = r.token;
+        localStorage.setItem(TOKEN_KEY, token);
+        $("pin").value = "";
+        showMain();
+        refresh();
+      } else {
+        $("err").textContent = "That PIN is not right.";
+      }
+    }).catch(function () { $("err").textContent = "Cannot reach the projector."; });
+  };
+
+  Array.prototype.forEach.call(document.querySelectorAll(".key[data-k]"), function (el) {
+    el.addEventListener("touchstart", function (e) { e.preventDefault(); send(el.getAttribute("data-k")); }, { passive: false });
+    el.addEventListener("click", function () { send(el.getAttribute("data-k")); });
+  });
+
+  $("homeBtn").onclick = function () {
+    api("/api/home", { token: token }).catch(function () {});
+  };
+  $("refreshBtn").onclick = function () { refresh(); };
+
+  $("bgPick").onclick = function () { $("bgFile").click(); };
+  $("bgFile").onchange = function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    setStatus(true, "uploading...");
+    fetch("/api/wallpaper?token=" + encodeURIComponent(token), {
+      method: "POST",
+      headers: { "Content-Type": f.type || "image/jpeg" },
+      body: f
+    }).then(function (r) { return r.json(); }).then(function (r) {
+      $("bgFile").value = "";
+      setStatus(true, r && r.ok ? "background set" : "upload failed");
+      setTimeout(function () { setStatus(true, "connected"); }, 2500);
+      refresh();
+    }).catch(function () { setStatus(false, "upload failed"); });
+  };
+  $("bgClear").onclick = function () {
+    api("/api/wallpaper/clear", { token: token }).then(refresh).catch(function () {});
+  };
+  $("tilesBtn").onclick = function () {
+    var e = $("tileEditor");
+    e.style.display = (e.style.display === "none") ? "block" : "none";
+    renderTiles();
+  };
+
+  document.addEventListener("keydown", function (e) {
+    var map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", Enter: "ok" };
+    if (map[e.key]) { e.preventDefault(); send(map[e.key]); }
+  });
+
+  function queryPin() {
+    var m = window.location.search.match(/[?&]pin=([0-9]{6})/);
+    return m ? m[1] : "";
+  }
+
+  // Scanning the QR on the TV lands here with ?pin=..., so pairing needs no typing.
+  var scanned = queryPin();
+  if (scanned && !token) {
+    api("/api/pair", { pin: scanned }).then(function (r) {
+      if (r && r.ok && r.token) {
+        token = r.token;
+        localStorage.setItem(TOKEN_KEY, token);
+        showMain();
+        refresh();
+      } else {
+        showPair("That QR code has expired - read the PIN on the TV.");
+        refresh();
+      }
+    }).catch(function () { refresh(); });
+  } else {
+    refresh();
+  }
+})();
+</script>
+</body>
+</html>

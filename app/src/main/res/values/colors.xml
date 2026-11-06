@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The redesigned home is light first; these legacy keys remain for the old drawables. -->
+    <color name="window_bg">#E9EBEE</color>
+    <color name="accent_light">#0A84FF</color>
+    <color name="bg_top">#0B0E14</color>
+    <color name="bg_bottom">#0B0E14</color>
+    <color name="tile">#12161F</color>
+    <color name="tile_focused">#171C27</color>
+    <color name="stroke_idle">#2A3140</color>
+    <color name="accent">#0A84FF</color>
+    <color name="text">#1D1D1F</color>
+    <color name="text_dim">#6E6E73</color>
+</resources>
