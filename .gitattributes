@@ -1,0 +1,12 @@
+# Keep line endings stable across platforms.
+* text=auto
+
+# The shell tools are pushed to the projector and run there: they must keep LF, never CRLF.
+*.sh text eol=lf
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+
+# Binaries
+*.jar binary
+*.apk binary
+*.aab binary

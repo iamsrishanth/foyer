@@ -362,3 +362,8 @@ What that means for this codebase:
 
 Nothing on the TV side gained a Bluetooth dependency, and the launcher's own navigation, focus model,
 pairing, discovery and Jellyfin behaviour are unchanged.
+
+## License
+
+MIT — see [LICENSE](LICENSE). The vendored QR encoder in `src/main/java/io/nayuki/qrcodegen/` is
+Project Nayuki's MIT-licensed library, also kept under its own terms.
